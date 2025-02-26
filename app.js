@@ -32,11 +32,13 @@ const facilitySchema = new mongoose.Schema({
   type: { type: String, required: true },
   name: { type: String, required: true },
   icon: { type: String }, // URL or path for the icon
+  link: { type: String }  // URL related to the facility
 });
 
 const wardSchema = new mongoose.Schema({
   name: { type: String, required: true },
   facilities: [facilitySchema],
+  link: { type: String } // URL related to the ward
 });
 
 const Ward = mongoose.model("Ward", wardSchema);
@@ -78,14 +80,14 @@ app.get("/api/data", async (req, res) => {
 
 // Create a New Ward
 app.post("/api/wards", async (req, res) => {
-  const { name, facilities } = req.body;
+  const { name, facilities, link } = req.body;
 
   if (!name || !facilities) {
     return res.status(400).json({ message: "Name and facilities are required" });
   }
 
   try {
-    const newWard = new Ward({ name, facilities });
+    const newWard = new Ward({ name, facilities, link });
     await newWard.save();
 
     console.log(`🏥 New Ward Created: ${name}`);
@@ -116,6 +118,27 @@ app.get("/api/wards/:id", async (req, res) => {
     res.json(ward);
   } catch (error) {
     console.error("❌ Error fetching ward:", error);
+    res.status(500).json({ message: "Database error" });
+  }
+});
+
+// Update a Ward by ID
+app.put("/api/wards/:id", async (req, res) => {
+  const { name, facilities, link } = req.body;
+
+  try {
+    const updatedWard = await Ward.findByIdAndUpdate(
+      req.params.id,
+      { name, facilities, link },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedWard) return res.status(404).json({ message: "Ward not found" });
+
+    console.log(`✏️ Ward Updated: ${updatedWard.name}`);
+    res.json(updatedWard);
+  } catch (error) {
+    console.error("❌ Error updating ward:", error);
     res.status(500).json({ message: "Database error" });
   }
 });
